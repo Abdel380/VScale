@@ -6,15 +6,13 @@ const port = 3000;
 
 
 router.post('/getAuthToken', async (req, res) => {
-    console.log('getAuthToken called')
-    try {
+        try {
         // Appel à une API externe avec POST
         const response = await axios.post(`https://${domain}.biapi.pro/2.0/auth/init`, {
             client_id: '38585586',
             client_secret: '3IFGQgqwTp2tEAeVcSw5JiWgIBRD9k0q'
         });
 
-        console.log(response.data)
 
         res.status(200).json(response.data);
     } catch (error) {
@@ -26,11 +24,8 @@ router.post('/getAuthToken', async (req, res) => {
 
 router.get('/getCode', async (req, res) => {
     try {
-        console.log("Tentative de reccuperation du code");
         // Appel vers une API externe
         const p_auth_token = req.headers.authorization?.split(' ')[1]; 
-        console.log("Token reccuperer dans fetch -> Envoie de la requete à l'api Powens");
-        console.log(p_auth_token);
         const response = await axios.get(`https://${domain}.biapi.pro/2.0/auth/token/code`, 
             {
                 headers: { 
@@ -38,8 +33,6 @@ router.get('/getCode', async (req, res) => {
                 }
             }
         );
-        //console.log("Code reccuperer avec succès");
-        console.log(response.data);
         return res.status(200).json(response.data);
 
     } catch (error) {
@@ -51,12 +44,10 @@ router.get('/getCode', async (req, res) => {
 
 router.get('/getAccessToken', async (req, res) => {
     // code recovery
-    console.log('getAccessToken');
     const { code } = req.query; // Récupérer le paramètre `code`
     if (!code) {
         return res.status(400).json({ message: 'Code manquant.' });
     }
-    console.log("Code reçu :", typeof code);
     try {
         // Effectuer l'appel API avec les données dans le corps
         const response = await axios.post(`https://${domain}.biapi.pro/2.0/auth/token/access`, 
@@ -67,7 +58,6 @@ router.get('/getAccessToken', async (req, res) => {
             }
         );
 
-        console.log("Access token récupéré :", response.data);
         res.status(200).json(response.data);
     } catch (error) {
         console.error(`Erreur lors de la requête à l'API https://${domain}.biapi.pro/2.0/auth/token/access`, error.message);
@@ -76,12 +66,10 @@ router.get('/getAccessToken', async (req, res) => {
 });
 
 router.post('/actualizeAccount', async (req, res) => { // Returning a list of account element
-    console.log("Actualizing list of account");    
     const p_auth_token = req.headers.authorization; // Supprime "Bearer " et récupère le token
     if (!p_auth_token) {
         return res.status(401).json({ error: 'Token manquant dans les en-têtes' });
     }
-    console.log("Token reccupéré avec succès : ", p_auth_token);
 
     try {
         const response = await axios.get(`https://${domain}.biapi.pro/2.0/users/me/accounts`, 
@@ -91,7 +79,6 @@ router.post('/actualizeAccount', async (req, res) => { // Returning a list of ac
                 }
             }
         );
-        console.log("Liste des comptes récupérée :", response.data);
         res.status(200).json(response.data);
     }catch (error) {
         console.error('Erreur lors de la récupération des comptes :', error.message);
@@ -101,6 +88,94 @@ router.post('/actualizeAccount', async (req, res) => { // Returning a list of ac
 
 
 
+router.post('/getAccountPEA', async (req, res) => { // Returning a list of account element
+    const p_auth_token = req.headers.authorization; // Supprime "Bearer " et récupère le token
+    if (!p_auth_token) {
+        return res.status(401).json({ error: 'Token manquant dans les en-têtes' });
+    }
 
+    const { id_account } = req.body;
+    try {
+        const response = await axios.get(`https://${domain}.biapi.pro/2.0/users/me/accounts/${id_account}/investments`, 
+            {
+                headers: { 
+                Authorization: p_auth_token
+                }
+            }
+        );
+        res.status(200).json(response.data);
+    }catch (error) {
+        console.error('Erreur lors de la récupération des comptes :', error.message);
+        res.status(500).json({ error: 'Erreur lors de la récupération des comptes' });
+    }
+});
+router.post('/getAccount', async (req, res) => { // Returning a list of account element
+    const p_auth_token = req.headers.authorization; // Supprime "Bearer " et récupère le token
+    if (!p_auth_token) {
+        return res.status(401).json({ error: 'Token manquant dans les en-têtes' });
+    }
+
+    const { id_account } = req.body;
+    try {
+        const response = await axios.get(`https://${domain}.biapi.pro/2.0/users/me/accounts/${id_account}`, 
+            {
+                headers: { 
+                Authorization: p_auth_token
+                }
+            }
+        );
+        res.status(200).json(response.data);
+    }catch (error) {
+        console.error('Erreur lors de la récupération des comptes :', error.message);
+        res.status(500).json({ error: 'Erreur lors de la récupération des comptes' });
+    }
+});
+
+
+router.post('/getTransactions', async (req, res) => { // Returning a list of account element
+    const p_auth_token = req.headers.authorization; // Supprime "Bearer " et récupère le token
+    if (!p_auth_token) {
+        return res.status(401).json({ error: 'Token manquant dans les en-têtes' });
+    }
+
+    const { id_account } = req.body;
+    try {
+        const response = await axios.get(`https://${domain}.biapi.pro/2.0/users/me/accounts/${id_account}/transactions?expand=categories&limit=1000&min_date=2024-12-01`, 
+            {
+                headers: { 
+                Authorization: p_auth_token
+                }
+            }
+        );
+
+        res.status(200).json(response.data);
+    }catch (error) {
+        console.error('Erreur lors de la récupération des comptes :', error.message);
+        res.status(500).json({ error: 'Erreur lors de la récupération des comptes' });
+    }
+});
+
+router.post('/getCurveData', async (req, res) => { // Returning a list of account element
+    const p_auth_token = req.headers.authorization; // Supprime "Bearer " et récupère le token
+    if (!p_auth_token) {
+        return res.status(401).json({ error: 'Token manquant dans les en-têtes' });
+    }
+
+    const { id_account } = req.body;
+
+    try {
+        const response = await axios.get(`https://${domain}.biapi.pro/2.0/users/me/accounts/${id_account}/balances?min_date=2023-01-01`, 
+            {
+                headers: { 
+                Authorization: p_auth_token
+                }
+            }
+        );
+        res.status(200).json(response.data);
+    }catch (error) {
+        console.error('Erreur lors de la récupération des données pour la courbe :', error.message);
+        res.status(500).json({ error: 'Erreur lors de la récupération des données pour la courbe' });
+    }
+});
 
 module.exports = router;

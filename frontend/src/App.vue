@@ -22,7 +22,7 @@ export default {
 }
 
 body {
-  background-color: #1f1f1f;
+  background-color: #101010;
 }
 
 h1 {
@@ -32,6 +32,7 @@ h1 {
   background: linear-gradient(to right, rgb(137, 200, 255), rgb(138, 255, 138));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: none;
   display: inline-block; /* Permet au conteneur de s'ajuster à la taille du texte */
 }
 
@@ -46,5 +47,9 @@ button {
 button:hover {
   background-color: #131313;
   cursor: pointer;
+}
+
+input {
+  color: black;
 }
 </style>

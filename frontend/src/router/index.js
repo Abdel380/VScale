@@ -1,30 +1,28 @@
 import { createRouter, createWebHistory } from 'vue-router';
+
+
+// AUTH & Dashboard Routes
 import RegisterUser from '../vues/Auth/RegisterUser.vue';
 import LoginUser from '../vues/Auth/LoginUser.vue';
 import Dashboard from '../vues/Auth/Dashboard.vue';
+// Account View Routes
+import AccountCurrent from '../vues/Account/AccountCurrent.vue';
+import AccountSavings from '../vues/Account/AccountSavings.vue';
+import AccountPEA from '../vues/Account/AccountPEA.vue';
 
-// Définir les routes
+
+
 const routes = [
-    {
-        path: '/register',
-        name: 'Register',
-        component: RegisterUser,
-    },
-    {
-        path: '/login',
-        name: 'Login',
-        component: LoginUser,
-    },
-    {
-        path: '/dashboard',
-        name: 'Dashboard',
-        component: Dashboard,
-        meta: { requiresAuth: true },
-    },
-    {
-        path: '/',
-        redirect: '/dashboard', // Redirige la racine vers la page de dashboard
-    },
+    // AUTH & Dashboard Routes
+    { path: '/', redirect: '/dashboard'},
+    { path: '/register', name: 'Register', component: RegisterUser },
+    { path: '/login', name: 'Login', component: LoginUser },
+    { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
+
+    // Account View Routes
+    { path: '/account/current/:id', name: 'Current', component: AccountCurrent, props: true },
+    { path: '/account/savings/:id', name: 'Savings', component: AccountSavings, props: true },
+    { path: '/account/pea/:id', name: 'PEA', component: AccountPEA, props: true },
 ];
 
 // Créer le routeur

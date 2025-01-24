@@ -63,13 +63,46 @@ export const loginUser = async (loginData) => {
 };
 
 
+export const getUserCode = async (idUser) => {
+    console.log("getUsercode lancé");
+    const response = await api.post('/users/getUserCode', {idUser});
+    return response.data.code;
+}
+
+
 export const accountActualizer = async (p_auth_token, p_user_id) => {
     const response = await api.post('/users/actualizeAccount', {p_auth_token, p_user_id});
     return response.data;
 }
 
-export const getUserCode = async (idUser) => {
-    console.log("getUsercode lancé");
-    const response = await api.post('/users/getUserCode', {idUser});
-    return response.data.code;
+export const getAccount = async (sessionToken, p_user_id, id_account, type_account) => {
+    const response = await api.post('/users/getAccount', {sessionToken, p_user_id, id_account, type_account});
+    return response.data;
+}
+
+export const getCurveData = async (sessionToken, p_user_id, id_account) => {
+    const response = await api.post('/users/getCurveData', {sessionToken, p_user_id, id_account});
+    return response.data;
+}
+
+export const getTransactions = async (sessionToken, p_user_id, id_account) => {
+    console.log("Get Transactions processing ...")
+    const response = await api.post('/users/getTransactions', {sessionToken, p_user_id, id_account});
+    return response.data;
+}
+
+
+// GOAL PART
+export const createGoal = async (sessionToken, p_user_id, goalData) => {
+    console.log("Create Goal processing ...")
+    const response = await api.post('/goals/', {sessionToken, p_user_id, goalData});
+    return response.data;
+}
+
+export const getGoals = async ( id_user ) => {
+    console.log("Create Goal processing ...")
+    const response = await api.get('/goals/', {
+        params: { id_user }, // Passe id_user comme paramètre de requête
+      });
+    return response.data;
 }

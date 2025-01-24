@@ -27,7 +27,14 @@ const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 const apiRoutes = require('./routes/apiRoutes');
 app.use('/api', apiRoutes);
+const goalRoutes = require('./routes/goalRoutes');
+app.use('/api/goals', goalRoutes);
 
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Quelque chose a mal tourné !');
+});
 
 
 app.listen(port, () => {

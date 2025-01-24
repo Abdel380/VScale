@@ -47,10 +47,13 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    countIdList: {
-        type: [Number], 
-        default: [],
-    },
+    accountList: [
+        {
+          id_account: { type: Number, required: true },
+          solde: { type: Number, required: true },
+          update: { type: String, required: true }, // ou `Date` si vous préférez stocker la date
+        },
+    ],
 }, {
     timestamps: true,
 });

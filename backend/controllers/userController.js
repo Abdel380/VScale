@@ -10,7 +10,6 @@ const SECRET_KEY = "kjsd87*29!dhfs82JHFSdfh!328dh@43*dfhh_93";
  * Fonction pour créer un utilisateur
  */
 exports.createUser = async (req, res) => {
-    console.log("Request of user creation in the backend - START");
     const { firstname, lastname, email, password, dateOfBirth } = req.body;
 
     let p_auth_token;
@@ -25,22 +24,16 @@ exports.createUser = async (req, res) => {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
 
-        console.log("Request of user auth Token processing ...");
         try {
             const response = await axios.post(`http://localhost:3000/api/getAuthToken`);
             p_auth_token = response.data.auth_token;
             p_user_id = response.data.id_user;
-            console.log("Recovery of auth Token OK");
-            console.log("auth_token : ", p_auth_token);
-            console.log("user_id", p_user_id);
         } catch (error) {
             console.error('Erreur lors de l\'appel à /api/getAuthToken:', error.message);
             return res.status(500).json({ message: 'Erreur interne lors de la génération du token.' });
         }
 
-        console.log("Recovery of code processing ...")
         try {
-            console.log("Token", p_auth_token);
             const response = await axios.get(`http://localhost:3000/api/getCode`, {
                 headers: {
                     Authorization : `Bearer ${p_auth_token}`
@@ -48,30 +41,13 @@ exports.createUser = async (req, res) => {
             });
             const codeJSON = response.data;
             p_code = codeJSON.code;
-            console.log("Recovery of code OK")
-            console.log(p_code);
+
         } catch(error){
             console.error('Erreur lors de l\'appel à /api/getCode:', error.message);
             return res.status(500).json({ message: 'Erreur interne lors de la génération du code.' });
         }
-
-
-        /*console.log("Recovery of accessToken processing ...")
-        try {
-            const response = await axios.get(`http://localhost:3000/api/getAccessToken`, {
-                params: {
-                    code: `${p_code}` // Transmettre le paramètre dans `params`
-                }
-            });
-            p_access_token = response.data.access_token;
-            console.log("Recovery of accessToken OK");
-        } catch (error){
-            console.log("Recovery of accessToken not working");
-            return res.status(500).json({ message: 'Erreur interne lors de la reccuperation de l\'access token.' });
-        }*/
-
+        
         // Créer un nouvel utilisateur
-        console.log("User creation");
         countIdList = [];
         const newUser = new User({
             firstname,
@@ -86,7 +62,6 @@ exports.createUser = async (req, res) => {
         });
 
         await newUser.save();
-        console.log("User created");
         res.status(201).json({ message: 'Utilisateur créé avec succès.', user: newUser });
     } catch (error) {
         res.status(500).json({ message: 'Erreur lors de la création de l\'utilisateur.', error: error.message });
@@ -97,7 +72,6 @@ exports.createUser = async (req, res) => {
  * Fonction pour connecter un utilisateur
  */
 exports.loginUser = async (req, res) => {
-    console.log('Verfication utilisateur');
     const { email, password } = req.body;
 
     try {
@@ -107,17 +81,11 @@ exports.loginUser = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé.' });
         }
 
-        console.log('User is in the dataset');
-
-
         // Vérifier le mot de passe
         const isPasswordValid = await user.comparePassword(password);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Mot de passe incorrect.' });
         }
-
-        console.log('Password valid');
-
 
         // Générer un token de session
         const sessionToken = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, { expiresIn: '2h' });
@@ -143,27 +111,63 @@ exports.loginUser = async (req, res) => {
 };
 
 
-exports.accountActualizer = async (req, res) => {
-    console.log("arrivé à userController");
-    console.log(req.body);
 
+exports.accountActualizer = async (req, res) => {
+  try {
     // Récupérer les données envoyées dans le corps de la requête
     const { p_auth_token, p_user_id } = req.body;
 
     // Vérifiez si les deux champs nécessaires sont présents
     if (!p_auth_token || !p_user_id) {
-        return res.status(400).json({ error: "Les champs p_access_token et p_user_id sont obligatoires." });
+      return res.status(400).json({ error: "Les champs p_auth_token et p_user_id sont obligatoires." });
     }
 
-    console.log("p_auth_token récupéré :", p_auth_token);
-    console.log("p_user_id récupéré :", p_user_id);
-    const response = await axios.post(`http://localhost:3000/api/actualizeAccount`, {p_user_id}, {
+    // Appeler l'API pour actualiser les comptes
+    const response = await axios.post(
+      `http://localhost:3000/api/actualizeAccount`,
+      { p_user_id },
+      {
         headers: {
-            Authorization : `Bearer ${p_auth_token}`
-        }
-    });
+          Authorization: `Bearer ${p_auth_token}`,
+        },
+      }
+    );
+
+    console.log("Données reçues de l'API:", response.data);
+
+    // Extraire les comptes du JSON reçu
+    const accounts = response.data.accounts.map((account) => ({
+      id_account: account.id,
+      solde: account.balance,
+      update: account.last_update, // Assurez-vous que le format de date correspond à vos attentes
+    }));
+
+    console.log("Comptes formatés :", accounts);
+
+    // Trouver l'utilisateur correspondant dans la base de données
+    const user = await User.findOne({ p_user_id });
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé." });
+    }
+
+    // Mettre à jour le champ accountList de l'utilisateur
+    user.accountList = accounts;
+
+    // Sauvegarder les modifications dans la base de données
+    await user.save();
+
+    // Retourner une réponse de succès
     return res.status(200).json(response.data);
-}
+  } catch (error) {
+    console.error("Erreur lors de l'actualisation des comptes :", error.message);
+    return res.status(500).json({
+      error: "Une erreur est survenue lors de l'actualisation des comptes.",
+      details: error.message,
+    });
+  }
+};
+
 
 
 exports.getUserCode = async (req, res) => {
@@ -182,12 +186,12 @@ exports.getUserCode = async (req, res) => {
             return res.status(404).json({ error: "Utilisateur introuvable." });
         }
 
-        const token = user.p_auth_token;
+        const p_auth_token = user.p_auth_token;
 
         // Appel à l'API externe pour récupérer le code
         const response = await axios.get(`http://localhost:3000/api/getCode`, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${p_auth_token}`
             }
         });
 
@@ -210,29 +214,151 @@ exports.getUserCode = async (req, res) => {
 
 
 
+exports.getAccount = async (req, res) => {
+    const { sessionToken, p_user_id, id_account, type_account } = req.body;
 
-
-/**
- * Fonction pour mettre à jour les champs p_access_token, p_temp_token et p_user_id
- */
-exports.createUserPowensInfo = async (req, res) => {
-    const { id } = req.params;
-    const { p_access_token, p_temp_token, p_user_id } = req.body;
+    if (!p_user_id || !id_account) {
+        return res.status(400).json({ error: "Le champ est obligatoire." });
+    }
 
     try {
-        const user = await User.findById(id);
+        // Recherche de l'utilisateur dans la base de données
+        const user = await User.findOne({ p_user_id });
+
         if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+            return res.status(404).json({ error: "Utilisateur introuvable." });
         }
 
-        // Mettre à jour les champs liés à l'API
-        user.p_access_token = p_access_token || user.p_access_token;
-        user.p_temp_token = p_temp_token || user.p_temp_token;
-        user.p_user_id = p_user_id || user.p_user_id;
+        const p_auth_token = user.p_auth_token;
+        let response = null;
 
-        await user.save();
-        res.status(200).json({ message: 'Données API mises à jour avec succès.', user });
+        // Appel à l'API externe pour récupérer le code
+        if (type_account == 2){
+            response = await axios.post(`http://localhost:3000/api/getAccountPEA`, {id_account},{
+                headers: {
+                    Authorization: `Bearer ${p_auth_token}`
+                }
+            });
+        } else {
+            response = await axios.post(`http://localhost:3000/api/getAccount`, {id_account},{
+                headers: {
+                    Authorization: `Bearer ${p_auth_token}`
+                }
+            });
+        }
+
+        // Réponse avec succès
+        res.status(200).json(response.data);
     } catch (error) {
-        res.status(500).json({ message: 'Erreur lors de la mise à jour des données API.', error: error.message });
+        console.error("Erreur lors de la récupération ou de la mise à jour du code :", error.message);
+        res.status(500).json({ message: 'Erreur lors de la récupération ou de la mise à jour du code.', error: error.message });
+    }
+
+};
+
+
+exports.getTransactions = async (req, res) => {
+    const { sessionToken, p_user_id, id_account } = req.body;
+
+    if (!p_user_id || !id_account) {
+        return res.status(400).json({ error: "Le champ est obligatoire." });
+    }
+
+    try {
+        // Recherche de l'utilisateur dans la base de données
+        const user = await User.findOne({ p_user_id });
+
+        if (!user) {
+            return res.status(404).json({ error: "Utilisateur introuvable." });
+        }
+
+        const p_auth_token = user.p_auth_token;
+
+        // Appel à l'API externe pour récupérer les transactions
+        const response = await axios.post(
+            `http://localhost:3000/api/getTransactions`,
+            { id_account },
+            {
+                headers: {
+                    Authorization: `Bearer ${p_auth_token}`
+                }
+            }
+        );
+
+        const transactions = response.data.transactions;
+
+        // Calcul des revenus (incomes) et dépenses (expenses)
+        const incomes = transactions
+            .filter(transaction => transaction.value > 0)
+            .reduce((acc, transaction) => acc + transaction.value, 0);
+
+        const expenses = transactions
+            .filter(transaction => transaction.value < 0)
+            .reduce((acc, transaction) => acc + transaction.value, 0);
+
+        // Formatage des transactions
+        const formattedTransactions = transactions.map(transaction => ({
+            id: transaction.id,
+            original_wording: transaction.original_wording,
+            price: transaction.value,
+            id_category: transaction.id_category,
+            date: transaction.date
+        }));
+
+        // Construction de la réponse formatée
+        const formatedJSON = {
+            incomes,
+            expenses,
+            transactions: formattedTransactions
+        };
+
+        // Réponse avec succès
+        res.status(200).json(formatedJSON);
+    } catch (error) {
+        console.error("Erreur lors de la récupération ou de la mise à jour du code :", error.message);
+        res.status(500).json({
+            message: 'Erreur lors de la récupération ou de la mise à jour du code.',
+            error: error.message
+        });
+    }
+};
+
+
+
+exports.getCurveData = async (req, res) => {
+    const { sessionToken, p_user_id, id_account } = req.body;
+
+    if (!p_user_id) {
+        return res.status(400).json({ error: "Le champ est obligatoire." });
+    }
+
+    try {
+        // Recherche de l'utilisateur dans la base de données
+        const user = await User.findOne({ p_user_id });
+
+        if (!user) {
+            return res.status(404).json({ error: "Utilisateur introuvable." });
+        }
+
+        const p_auth_token = user.p_auth_token;
+
+        // Appel à l'API externe pour récupérer les données
+        const response = await axios.post(`http://localhost:3000/api/getCurveData`, { id_account }, {
+            headers: {
+                Authorization: `Bearer ${p_auth_token}`
+            }
+        });
+
+        // Transformation des données pour les simplifier
+        const simplifiedData = response.data.balances.map(item => ({
+            date: item.max_date,
+            balance: item.balance
+        }));
+
+        // Réponse avec succès
+        res.status(200).json(simplifiedData);
+    } catch (error) {
+        console.error("Erreur lors de la récupération ou de la mise à jour du code :", error.message);
+        res.status(500).json({ message: 'Erreur lors de la récupération ou de la mise à jour du code.', error: error.message });
     }
 };
